@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include <sys/select.h>
+#include <sys/epoll.h>
 
 #include "constants.h"
 
@@ -34,4 +34,28 @@ int main() {
         perror("listen");
         exit(1);
     }
+
+    int epfd = epoll_create1(0);
+    struct epoll_event ev;
+    ev.events = EPOLLIN;
+    ev.data.fd = lfd;
+    epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &ev);
+
+    struct epoll_event ready[EPOLL_READY_SIZE];
+
+    while (1) {
+        int n = epoll_wait(epfd, ready, EPOLL_READY_SIZE, -1);
+        if (n < 0) {
+            perror("epoll_wait");
+        }
+        for (int i = 0; i < n; i += 1) {
+            int fd = ready[i].data.fd;
+            if (fd == lfd) {
+                int cfd = accept(lfd, NULL, NULL);
+                ev.events = EPOLLIN;
+                ev.data.fd = cfd;
+                epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+            }
+        }
+    }    
 }
