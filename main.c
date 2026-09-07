@@ -89,7 +89,7 @@ int main() {
                         perror("accept4");
                         break;
                     }
-                    ev.events = EPOLLIN;
+
                     struct connection *con_ptr = malloc(sizeof *con_ptr);
                     if (con_ptr == NULL) {
                         perror("malloc");
@@ -97,8 +97,20 @@ int main() {
                         continue;
                     }
                     memset(con_ptr, 0, sizeof *con_ptr);
+
                     con_ptr -> fd = cfd;
+                    con_ptr -> rs = INITIAL_READ_BUFFER_SIZE;
+                    con_ptr -> read_buf = malloc(con_ptr -> rs);
+                    if (con_ptr -> read_buf == NULL) {
+                        perror("malloc");
+                        close(cfd);
+                        free(con_ptr);
+                        continue;
+                    }
+
+                    ev.events = EPOLLIN;
                     ev.data.ptr = con_ptr;
+
                     if (epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
                         perror("epoll_ctl");
                         close(cfd);
@@ -108,7 +120,21 @@ int main() {
                 }
             } else {
                 while (1) {
-                    int n = read(con -> fd, (con -> read_buf) + (con -> rp), 4096);
+                    if (con -> rs == con -> rp) {
+                        int ns = con -> rs * READ_BUFFER_RESIZE_FACTOR;
+                        if (ns > MAX_READ_BUFFER_SIZE) {
+                            disconnect(epfd, con);
+                            break;
+                        }
+                        char *nread_buf = realloc(con -> read_buf, ns);
+                        if (nread_buf == NULL) {
+                            perror("realloc");
+                            break;
+                        }
+                        con -> read_buf = nread_buf;
+                        con -> rs = ns;
+                    }
+                    int n = read(con -> fd, (con -> read_buf) + (con -> rp), (con -> rs) - (con -> rp));
                     if (n < 0) {
                         if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
                             break;
@@ -116,7 +142,12 @@ int main() {
                         perror("read");
                         break;
                     }
-                    (con -> rp) += n;
+                    if (n == 0) {
+                        close(con -> fd);
+                        free(con -> read_buf);
+                        break;
+                    }
+                    con -> rp += n;
                 }
             }
         }
