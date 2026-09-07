@@ -16,6 +16,6 @@ struct connection {
     int wp;
 };
 
-void disconnect(int epfd, struct connection *con);
+int disconnect(int epfd, struct connection *con);
 
 #endif
