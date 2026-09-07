@@ -96,6 +96,7 @@ int main() {
                         close(cfd);
                         continue;
                     }
+                    memset(con_ptr, 0, sizeof *con_ptr);
                     con_ptr -> fd = cfd;
                     ev.data.ptr = con_ptr;
                     if (epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
@@ -106,7 +107,17 @@ int main() {
                     }
                 }
             } else {
-                
+                while (1) {
+                    int n = read(con -> fd, (con -> read_buf) + (con -> rp), 4096);
+                    if (n < 0) {
+                        if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+                            break;
+                        }
+                        perror("read");
+                        break;
+                    }
+                    (con -> rp) += n;
+                }
             }
         }
     }    
