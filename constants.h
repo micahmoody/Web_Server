@@ -3,6 +3,10 @@
 
 #define PORT 8080
 #define BACKLOG 10
+
 #define EPOLL_READY_SIZE 64
+
+#define INITIAL_READ_BUFFER_SIZE 4096
+#define MAX_READ_BUFFER_SIZE 65536
 
 #endif
