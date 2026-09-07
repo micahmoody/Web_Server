@@ -1,5 +1,8 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -21,7 +24,7 @@ int main() {
     struct sockaddr_in bind_addr;
     memset(&bind_addr, 0, sizeof(bind_addr));
     bind_addr.sin_family = AF_INET;
-    bind_addr.sin_family = INADDR_ANY;
+    bind_addr.sin_addr.s_addr = INADDR_ANY;
     bind_addr.sin_port = htons(PORT);
     socklen_t bind_addr_len = sizeof(bind_addr);
 
@@ -36,10 +39,18 @@ int main() {
     }
 
     int epfd = epoll_create1(0);
+    if (epfd < 0) {
+        perror("epoll_create1");
+        exit(1);
+    }
+
     struct epoll_event ev;
     ev.events = EPOLLIN;
     ev.data.fd = lfd;
-    epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &ev);
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &ev) < 0) {
+        perror("epoll_ctl");
+        exit(1);
+    }
 
     struct epoll_event ready[EPOLL_READY_SIZE];
 
@@ -51,10 +62,21 @@ int main() {
         for (int i = 0; i < n; i += 1) {
             int fd = ready[i].data.fd;
             if (fd == lfd) {
-                int cfd = accept(lfd, NULL, NULL);
-                ev.events = EPOLLIN;
-                ev.data.fd = cfd;
-                epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+                while (1) {
+                    int cfd = accept4(lfd, NULL, NULL, SOCK_NONBLOCK);
+                    if (cfd < 0) {
+                        if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+                            break;
+                        }
+                        perror("accept4");
+                        break;
+                    }
+                    ev.events = EPOLLIN;
+                    ev.data.fd = cfd;
+                    epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+                }
+            } else {
+
             }
         }
     }    
