@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -18,6 +19,16 @@ int main() {
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
     if (lfd < 0) {
         perror("socket");
+        exit(1);
+    }
+
+    int flags = fcntl(lfd, F_GETFL, 0);
+    if (flags < 0) {
+        perror("fcntl");
+        exit(1);
+    }
+    if (fcntl(lfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+        perror("fcntl");
         exit(1);
     }
 
