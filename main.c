@@ -71,7 +71,11 @@ int main() {
     while (1) {
         int n = epoll_wait(epfd, ready, EPOLL_READY_SIZE, -1);
         if (n < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             perror("epoll_wait");
+            exit(1);
         }
         for (int i = 0; i < n; i += 1) {
             struct connection *con = ready[i].data.ptr;
@@ -86,13 +90,20 @@ int main() {
                         break;
                     }
                     ev.events = EPOLLIN;
-                    void *con_ptr = malloc(sizeof *con_ptr);
+                    struct connection *con_ptr = malloc(sizeof *con_ptr);
                     if (con_ptr == NULL) {
                         perror("malloc");
-                        exit(1);
+                        close(cfd);
+                        continue;
                     }
+                    con_ptr -> fd = cfd;
                     ev.data.ptr = con_ptr;
-                    epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
+                    if (epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
+                        perror("epoll_ctl");
+                        close(cfd);
+                        free(con_ptr);
+                        continue;
+                    }
                 }
             } else {
                 
