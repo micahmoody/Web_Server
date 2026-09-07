@@ -14,6 +14,7 @@
 #include <sys/epoll.h>
 
 #include "constants.h"
+#include "connection.h"
 
 int main() {
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -56,8 +57,10 @@ int main() {
     }
 
     struct epoll_event ev;
+    struct connection lfd_cont;
+    lfd_cont.fd = lfd;
     ev.events = EPOLLIN;
-    ev.data.fd = lfd;
+    ev.data.ptr = &lfd_cont;
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &ev) < 0) {
         perror("epoll_ctl");
         exit(1);
@@ -71,8 +74,8 @@ int main() {
             perror("epoll_wait");
         }
         for (int i = 0; i < n; i += 1) {
-            int fd = ready[i].data.fd;
-            if (fd == lfd) {
+            struct connection *con = ready[i].data.ptr;
+            if (con -> fd == lfd) {
                 while (1) {
                     int cfd = accept4(lfd, NULL, NULL, SOCK_NONBLOCK);
                     if (cfd < 0) {
@@ -83,11 +86,16 @@ int main() {
                         break;
                     }
                     ev.events = EPOLLIN;
-                    ev.data.fd = cfd;
+                    void *con_ptr = malloc(sizeof *con_ptr);
+                    if (con_ptr == NULL) {
+                        perror("malloc");
+                        exit(1);
+                    }
+                    ev.data.ptr = con_ptr;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev);
                 }
             } else {
-
+                
             }
         }
     }    

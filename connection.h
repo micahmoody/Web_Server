@@ -3,7 +3,10 @@
 
 struct connection {
     int fd;
-
+    char *read_buf;
+    char *write_buf;
+    int wp;
+    int rp;
 };
 
 #endif
