@@ -103,8 +103,7 @@ int main() {
                     con_ptr -> read_buf = malloc(con_ptr -> rs);
                     if (con_ptr -> read_buf == NULL) {
                         perror("malloc");
-                        close(cfd);
-                        free(con_ptr);
+                        disconnect(epfd, con_ptr);
                         continue;
                     }
 
@@ -113,8 +112,7 @@ int main() {
 
                     if (epoll_ctl(epfd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
                         perror("epoll_ctl");
-                        close(cfd);
-                        free(con_ptr);
+                        disconnect(epfd, con_ptr);
                         continue;
                     }
                 }
@@ -143,8 +141,7 @@ int main() {
                         break;
                     }
                     if (n == 0) {
-                        close(con -> fd);
-                        free(con -> read_buf);
+                        disconnect(epfd, con);
                         break;
                     }
                     con -> rp += n;
