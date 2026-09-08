@@ -127,6 +127,7 @@ int main() {
                         char *nread_buf = realloc(con -> read_buf, ns);
                         if (nread_buf == NULL) {
                             perror("realloc");
+                            disconnect(epfd, con);
                             break;
                         }
                         con -> read_buf = nread_buf;
