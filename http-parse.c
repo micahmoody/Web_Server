@@ -9,11 +9,14 @@ int get_end(char *start, int len) {
     return -1;
 }
 
-int extract_request(struct http_parser *dst, char *data, int len) {
+enum HTTP_REQUEST_STATE extract_request(struct http_parser *dst, char *data, int len) {
     int found = 0;
     int space_indexes[2];
     int end = get_end(data, len);
-    for (int i = 0; i < len; i += 1) {
+    if (end < 0) {
+        return INCOMPLETE_REQUEST;
+    }
+    for (int i = 0; i < end; i += 1) {
         if (data[i] == ' ') {
             space_indexes[found] = i;
             if (found == 1) {
@@ -25,10 +28,10 @@ int extract_request(struct http_parser *dst, char *data, int len) {
 
                 dst->version.addr = data + space_indexes[1] + 1;
                 dst->version.len = end - space_indexes[1] - 1;
-                return 0;
+                return SUCCESS;
             }
             found = 1;
         }
     }
-    return -1;
+    return ERR_MALFORMED_REQUEST;
 }
