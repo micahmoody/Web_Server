@@ -150,7 +150,6 @@ int main() {
                     if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
                         enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
                         if (request == ERR_MALFORMED_REQUEST) {
-                            perror("extract_request");
                             disconnect(epfd, con);
                             continue;
                         }
