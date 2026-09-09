@@ -1,8 +1,23 @@
 #include "http-parse.h"
 
 int get_end(char *start, int len) {
+    if (len < 2) {
+        return -1;
+    }
     for (int i = 0; i < len - 1; i += 1) {
         if (start[i] == '\r' && start[i + 1] == '\n') {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int get_dbend(char *start, int len) {
+    if (len < 4) {
+        return -1;
+    }
+    for (int i = 0; i < len - 3; i += 1) {
+        if (start[i] == '\r' && start[i + 1] == '\n' && start[i + 2] == '\r' && start[i + 3] == '\n') {
             return i;
         }
     }

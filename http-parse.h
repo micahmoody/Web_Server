@@ -21,6 +21,7 @@ struct http_parser {
 };
 
 int get_end(char *start, int len);
+int get_dbend(char *start, int len);
 enum HTTP_REQUEST_STATE extract_request(struct http_parser *dst, char *data, int len);
 
 #endif
