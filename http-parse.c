@@ -106,39 +106,6 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
     return SUCCESS;
 }
 
-// int end = get_dbend(data, len);
-    // if (end < 0) {
-    //     return ERR_MALFORMED_REQUEST;
-    // }
-    // int last_delimeter = 0;
-    // int next_delimeter;
-    // while (1) {
-    //     last_delimeter = next_delimeter;
-    //     next_delimeter = get_end(data + next_delimeter, end - next_delimeter);
-    //     if (next_delimeter > 0) {
-    //         for (int i = 0; i < next_delimeter; i += 1) {
-    //             if (data[last_delimeter + i] == ':') {
-    //                 dst->header_count += 1;
-    //                 dst->headers[dst->header_count].name.addr = data + last_delimeter + 2;
-    //                 dst->headers[dst->header_count].name.len = i - last_delimeter - 2;
-    //                 int j = 1;
-    //                 while (1) {
-    //                     if (data[i + j + 1] != ' ') {
-    //                         break;
-    //                     }
-    //                     j += 1;
-    //                 }
-    //                 dst->headers[dst->header_count].value.addr = data + last_delimeter + i + j;
-    //                 dst->headers[dst->header_count].value.len = next_delimeter - i - j;
-    //                 break;
-    //             }
-    //         }
-    //     } else {
-    //         break;
-    //     }
-    // }
-    // return SUCCESS;
-
 enum HTTP_REQUEST_STATE extract_request(struct http_parser *dst, char *data, int len) {
     int found = 0;
     int space_indexes[2];
