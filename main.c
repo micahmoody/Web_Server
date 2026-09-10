@@ -15,6 +15,7 @@
 
 #include "constants.h"
 #include "connection.h"
+#include "http-parse.h"
 
 int main() {
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -154,7 +155,10 @@ int main() {
                             continue;
                         }
                         if (request == SUCCESS) {
-
+                            if ((request = extract_headers(&con->hp, con->read_buf, con->rp)) == ERR_MALFORMED_REQUEST) {
+                                disconnect(epfd, con);
+                                continue;
+                            }
                         }
                     }
                 }
