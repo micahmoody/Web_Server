@@ -53,6 +53,9 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
             if (state != 1) {
                 return ERR_MALFORMED_REQUEST;
             }
+            if (border_len >= MAX_HEADER_COUNT) {
+                return ERR_TOO_MANY_HEADERS;
+            }
             if (data[i + 2] == '\r' && data[i + 3] == '\n') {
                 header_end = i;
                 continue;
@@ -68,6 +71,9 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
             }
             if (state != 3) {
                 return ERR_MALFORMED_REQUEST;
+            }
+            if (del_len >= MAX_HEADER_COUNT) {
+                return ERR_TOO_MANY_HEADERS;
             }
             del[del_len] = i;
             del_len += 1;
@@ -93,7 +99,7 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         }
         whitespace = 0;
     }
-    if (header_end < 0 || del_len != border_len) { //redundant? don't know
+    if (header_end < 0 || del_len != border_len) {
         return ERR_MALFORMED_REQUEST;
     }
     borders[border_len] = header_end;
