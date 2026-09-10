@@ -155,7 +155,8 @@ int main() {
                             continue;
                         }
                         if (request == SUCCESS) {
-                            if ((request = extract_headers(&con->hp, con->read_buf, con->rp)) == ERR_MALFORMED_REQUEST) {
+                            request = extract_headers(&con->hp, con->read_buf, con->rp);
+                            if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
                                 disconnect(epfd, con);
                                 continue;
                             }
