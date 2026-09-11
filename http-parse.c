@@ -112,7 +112,7 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
     return SUCCESS;
 }
 
-enum HTTP_REQUEST_STATE extract_request(struct http_parser *dst, char *data, int len) {
+enum HTTP_REQUEST_STATE extract_request_line(struct http_parser *dst, char *data, int len) {
     int found = 0;
     int space_indexes[2];
     int end = get_end(data, len);
