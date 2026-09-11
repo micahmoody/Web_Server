@@ -152,13 +152,13 @@ int main() {
                         enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
                         if (request == ERR_MALFORMED_REQUEST) {
                             disconnect(epfd, con);
-                            continue;
+                            break;
                         }
                         if (request == SUCCESS) {
                             request = extract_headers(&con->hp, con->read_buf, con->rp);
                             if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
                                 disconnect(epfd, con);
-                                continue;
+                                break;
                             }
                         }
                     }
