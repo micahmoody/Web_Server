@@ -28,7 +28,6 @@ int get_dbend(char *start, int len) {
 }
 
 enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int len) {
-    printf("\nCalled extract_headers");
     //do not read data[len] or further
     //len is the amount of bytes safe to read
     int header_start = get_end(data, len), header_end = -1;
@@ -46,8 +45,7 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
     // 3: ready for a delimeter (:)
     // 4: ready for header value but not next border
     // then back around to 1
-
-    printf("\nRaw header: ");
+    // ^this should have been an enum
     for (int i = header_start; i < len - 3; i += 1) {
         printf("%c", data[i]);
         if (data[i] == '\r' && data[i + 1] == '\n') {
@@ -100,19 +98,16 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         }
         whitespace = 0;
     }
-    printf("\nDone looping through headers");
     if (header_end < 0 || del_len != border_len) {
         return ERR_MALFORMED_REQUEST;
     }
     borders[border_len] = header_end;
-    printf("\nCopying results into dst");
     for (int i = 0; i < border_len; i += 1) {
         dst->headers[i].name.addr = data + borders[i] + 2;
         dst->headers[i].name.len = del[i] - borders[i] - 2;
         dst->headers[i].value.addr = data + del[i] + spaces[i] + 1;
         dst->headers[i].value.len = borders[i + 1] - del[i] - spaces[i] - 1;
     }
-    printf("\nDone copying, returning success...");
     fflush(stdout);
     return SUCCESS;
 }

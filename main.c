@@ -50,9 +50,6 @@ int main() {
         perror("listen");
         exit(1);
     }
-
-    printf("\nListening on port %d...", PORT);
-
     int epfd = epoll_create1(0);
     if (epfd < 0) {
         perror("epoll_create1");
@@ -95,9 +92,6 @@ int main() {
                         perror("accept4");
                         break;
                     }
-
-                    printf("\nAccepting client with fd %d...", cfd);
-
                     struct connection *con_ptr = malloc(sizeof *con_ptr);
                     if (con_ptr == NULL) {
                         perror("malloc");
@@ -123,14 +117,8 @@ int main() {
                         disconnect(epfd, con_ptr);
                         continue;
                     }
-
-                    printf("\nAccept successful, continuing");
-
                 }
             } else {
-
-                printf("Reading fd %d...", con->fd);
-
                 while (1) {
                     if (con -> rs == con -> rp) {
                         int ns = con -> rs * READ_BUFFER_RESIZE_FACTOR;
@@ -161,48 +149,18 @@ int main() {
                         break;
                     }
                     con -> rp += n;
-
-                    printf("\nRead successfull");
-
                     int end_header;
                     if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
                         enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
-                        printf("\nextract_request_line returned");
                         if (request == ERR_MALFORMED_REQUEST) {
-
-                            printf("\nReceived malformed HTTP request, disconnecting");
-
                             disconnect(epfd, con);
                             break;
                         }
                         if (request == SUCCESS  ) {
-                            printf("\nReceived HTTP request line, trying headers...");
                             request = extract_headers(&con->hp, con->read_buf, con->rp);
                             if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
-                                if (request == ERR_MALFORMED_REQUEST) {
-                                    printf("\nMalformed request in HTTP headers, disconnecting");
-                                }
-                                if (request == ERR_TOO_MANY_HEADERS) {
-                                    printf("\nReceived too many HTTP headers, disconnecting");
-                                }
                                 disconnect(epfd, con);
                                 break;
-                            }
-                            printf("\nReceived HTTP headers");
-                            fflush(stdout);
-                            char response_h[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 89\r\nCache-Control: no-cache\r\n\r\n<!DOCTYPE html><html><head><title>it worked</title></head><body><h1>Hi</h1></body></html>";
-                            con->write_buf=response_h;
-                            con->wp=0;
-                            int len = strlen(response_h);;
-                            while (len > 0) {
-                                int n = write(con->fd, con->write_buf+con->wp, len);
-                                if (n < 0) {
-                                    perror("write");
-                                    disconnect(epfd, con);
-                                    break;
-                                }
-                                len -= n;
-                                con->wp += n;
                             }
                         }
                     }
