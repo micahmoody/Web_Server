@@ -79,9 +79,6 @@ int main() {
         }
         for (int i = 0; i < n; i += 1) {
             struct connection *con = ready[i].data.ptr;
-
-            printf("\nHandling fd %d...", con->fd);
-
             if (con -> fd == lfd) {
                 while (1) {
                     int cfd = accept4(lfd, NULL, NULL, SOCK_NONBLOCK);
@@ -102,8 +99,16 @@ int main() {
 
                     con_ptr -> fd = cfd;
                     con_ptr -> rs = INITIAL_READ_BUFFER_SIZE;
+                    con_ptr -> ws = INITIAL_WRITE_BUFFER_SIZE;
                     con_ptr -> read_buf = malloc(con_ptr -> rs);
                     if (con_ptr -> read_buf == NULL) {
+                        perror("malloc");
+                        disconnect(epfd, con_ptr);
+                        continue;
+                    }
+
+                    con_ptr->write_buf = malloc(con_ptr -> ws);
+                    if (con_ptr->write_buf == NULL) {
                         perror("malloc");
                         disconnect(epfd, con_ptr);
                         continue;
@@ -119,48 +124,74 @@ int main() {
                     }
                 }
             } else {
-                while (1) {
-                    if (con -> rs == con -> rp) {
-                        int ns = con -> rs * READ_BUFFER_RESIZE_FACTOR;
-                        if (ns > MAX_READ_BUFFER_SIZE) {
-                            disconnect(epfd, con);
-                            break;
-                        }
-                        char *nread_buf = realloc(con -> read_buf, ns);
-                        if (nread_buf == NULL) {
-                            perror("realloc");
-                            disconnect(epfd, con);
-                            break;
-                        }
-                        con -> read_buf = nread_buf;
-                        con -> rs = ns;
-                    }
-                    int n = read(con -> fd, (con -> read_buf) + (con -> rp), (con -> rs) - (con -> rp));
-                    if (n < 0) {
-                        if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-                            break;
-                        }
-                        perror("read");
-                        disconnect(epfd, con);
-                        break;
-                    }
-                    if (n == 0) {
-                        disconnect(epfd, con);
-                        break;
-                    }
-                    con -> rp += n;
-                    int end_header;
-                    if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
-                        enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
-                        if (request == ERR_MALFORMED_REQUEST) {
-                            disconnect(epfd, con);
-                            break;
-                        }
-                        if (request == SUCCESS  ) {
-                            request = extract_headers(&con->hp, con->read_buf, con->rp);
-                            if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
+                if (ready[i].events & EPOLLIN) {
+                    while (1) {
+                        if (con -> rs == con -> rp) {
+                            int ns = con -> rs * READ_BUFFER_RESIZE_FACTOR;
+                            if (ns > MAX_READ_BUFFER_SIZE) {
                                 disconnect(epfd, con);
                                 break;
+                            }
+                            char *nread_buf = realloc(con -> read_buf, ns);
+                            if (nread_buf == NULL) {
+                                perror("realloc");
+                                disconnect(epfd, con);
+                                break;
+                            }
+                            con -> read_buf = nread_buf;
+                            con -> rs = ns;
+                        }
+                        int n = read(con -> fd, (con -> read_buf) + (con -> rp), (con -> rs) - (con -> rp));
+                        if (n < 0) {
+                            if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+                                break;
+                            }
+                            perror("read");
+                            disconnect(epfd, con);
+                            break;
+                        }
+                        if (n == 0) {
+                            disconnect(epfd, con);
+                            break;
+                        }
+                        con -> rp += n;
+                        int end_header;
+                        if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
+                            enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
+                            if (request == ERR_MALFORMED_REQUEST) {
+                                disconnect(epfd, con);
+                                break;
+                            }
+                            if (request == SUCCESS) {
+                                request = extract_headers(&con->hp, con->read_buf, con->rp);
+                                if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
+                                    disconnect(epfd, con);
+                                    break;
+                                }
+                                ev.events = EPOLLOUT;
+                                ev.data.ptr = con;
+                                epoll_ctl(epfd, EPOLL_CTL_MOD, con->fd, &ev);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    if (ready[i].events & EPOLLOUT) {
+                        while (1) {
+                            int n = write(con->fd, con->write_buf + con->wp, con->wl - con->wp);
+                            if (n < 0) {
+                                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                                    break;
+                                }
+                                perror("write");
+                                disconnect(epfd, con);
+                                break;
+                            }
+                            con->wp += n;
+                            if (con->wp == con->wl) {
+                                //successful read/write exchange between client and server
+                                disconnect(epfd, con);
+                                break; 
                             }
                         }
                     }
