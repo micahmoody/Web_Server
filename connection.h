@@ -11,12 +11,13 @@ struct connection {
 
     char *read_buf;
     char *write_buf;
+    int wl; //length of content in write buffer
 
-    int rs;
-    int ws;
+    int rs; //read buffer size
+    int ws; //write buffer size
 
-    int rp;
-    int wp;
+    int rp; //read buffer position
+    int wp; //write buffer position
 };
 
 int disconnect(int epfd, struct connection *con);
