@@ -28,13 +28,11 @@ int get_dbend(char *start, int len) {
 }
 
 enum HTTP_PARSE_STATE extract_headers(struct http_parser *dst, char *data, int len) {
-    //do not read data[len] or further
-    //len is the amount of bytes safe to read
     int header_start = get_end(data, len), header_end = -1;
-    int borders[MAX_HEADER_COUNT]; // track \r\n indexes
-    int del[MAX_HEADER_COUNT]; //track : indexes
-    int spaces[MAX_HEADER_COUNT]; //track how many spaces after : before header value
-    int whitespace = 0; //boolean: track whether to count spaces as whitespace or not
+    int borders[MAX_HEADER_COUNT];
+    int del[MAX_HEADER_COUNT];
+    int spaces[MAX_HEADER_COUNT];
+    int whitespace = 0;
     memset(spaces, 0, sizeof(spaces));
     int border_len = 0, del_len = 0;
 
@@ -44,7 +42,6 @@ enum HTTP_PARSE_STATE extract_headers(struct http_parser *dst, char *data, int l
     // 2: ready for a header name
     // 3: ready for a delimeter (:)
     // 4: ready for header value but not next border
-    // then back around to 1
     // ^this should have been an enum
     for (int i = header_start; i < len - 3; i += 1) {
         printf("%c", data[i]);
@@ -108,7 +105,6 @@ enum HTTP_PARSE_STATE extract_headers(struct http_parser *dst, char *data, int l
         dst->headers[i].value.addr = data + del[i] + spaces[i] + 1;
         dst->headers[i].value.len = borders[i + 1] - del[i] - spaces[i] - 1;
     }
-    fflush(stdout);
     return HTTP_PARSE_SUCCESS;
 }
 

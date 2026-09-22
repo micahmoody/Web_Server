@@ -189,7 +189,6 @@ int main() {
                             }
                             con->wp += n;
                             if (con->wp == con->wl) {
-                                //successful read/write exchange between client and server
                                 disconnect(epfd, con);
                                 break; 
                             }
