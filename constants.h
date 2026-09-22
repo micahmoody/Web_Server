@@ -20,4 +20,7 @@
 //http
 #define MAX_HEADER_COUNT 12
 
+//www
+#define DOCUMENT_ROOT "./www"
+
 #endif

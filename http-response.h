@@ -1,0 +1,13 @@
+
+#ifndef HTTP_RESPONSE_H
+
+#define HTTP_RESPONSE_H
+
+enum http_response_resolve_state {
+    HTTP_RESOLVE_NOT_FOUND,
+    HTTP_RESOLVE_MALLOC_ERROR,
+    HTTP_RESOLVE_OPEN_ERROR,
+    HTTP_RESOLVE_SUCCESS
+};
+
+#endif
