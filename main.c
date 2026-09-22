@@ -157,14 +157,14 @@ int main() {
                         con -> rp += n;
                         int end_header;
                         if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
-                            enum HTTP_REQUEST_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
-                            if (request == ERR_MALFORMED_REQUEST) {
+                            enum HTTP_PARSE_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
+                            if (request == HTTP_PARSE_ERR_MALFORMED_REQUEST) {
                                 disconnect(epfd, con);
                                 break;
                             }
-                            if (request == SUCCESS) {
+                            if (request == HTTP_PARSE_SUCCESS) {
                                 request = extract_headers(&con->hp, con->read_buf, con->rp);
-                                if (request == ERR_MALFORMED_REQUEST || request == ERR_TOO_MANY_HEADERS) {
+                                if (request == HTTP_PARSE_ERR_MALFORMED_REQUEST || request == HTTP_PARSE_ERR_TOO_MANY_HEADERS) {
                                     disconnect(epfd, con);
                                     break;
                                 }

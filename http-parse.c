@@ -27,7 +27,7 @@ int get_dbend(char *start, int len) {
     return -1;
 }
 
-enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int len) {
+enum HTTP_PARSE_STATE extract_headers(struct http_parser *dst, char *data, int len) {
     //do not read data[len] or further
     //len is the amount of bytes safe to read
     int header_start = get_end(data, len), header_end = -1;
@@ -50,10 +50,10 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         printf("%c", data[i]);
         if (data[i] == '\r' && data[i + 1] == '\n') {
             if (state != 1) {
-                return ERR_MALFORMED_REQUEST;
+                return HTTP_PARSE_ERR_MALFORMED_REQUEST;
             }
             if (border_len >= MAX_HEADER_COUNT) {
-                return ERR_TOO_MANY_HEADERS;
+                return HTTP_PARSE_ERR_TOO_MANY_HEADERS;
             }
             if (data[i + 2] == '\r' && data[i + 3] == '\n') {
                 header_end = i;
@@ -69,10 +69,10 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
                 continue;
             }
             if (state != 3) {
-                return ERR_MALFORMED_REQUEST;
+                return HTTP_PARSE_ERR_MALFORMED_REQUEST;
             }
             if (del_len >= MAX_HEADER_COUNT) {
-                return ERR_TOO_MANY_HEADERS;
+                return HTTP_PARSE_ERR_TOO_MANY_HEADERS;
             }
             del[del_len] = i;
             del_len += 1;
@@ -82,7 +82,7 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         }
         if (data[i] == ' ') {
             if (state != 4 && state != 1) {
-                return ERR_MALFORMED_REQUEST;
+                return HTTP_PARSE_ERR_MALFORMED_REQUEST;
             }
             if (whitespace) {
                 spaces[del_len - 1] += 1;
@@ -99,7 +99,7 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         whitespace = 0;
     }
     if (header_end < 0 || del_len != border_len) {
-        return ERR_MALFORMED_REQUEST;
+        return HTTP_PARSE_ERR_MALFORMED_REQUEST;
     }
     borders[border_len] = header_end;
     for (int i = 0; i < border_len; i += 1) {
@@ -109,15 +109,15 @@ enum HTTP_REQUEST_STATE extract_headers(struct http_parser *dst, char *data, int
         dst->headers[i].value.len = borders[i + 1] - del[i] - spaces[i] - 1;
     }
     fflush(stdout);
-    return SUCCESS;
+    return HTTP_PARSE_SUCCESS;
 }
 
-enum HTTP_REQUEST_STATE extract_request_line(struct http_parser *dst, char *data, int len) {
+enum HTTP_PARSE_STATE extract_request_line(struct http_parser *dst, char *data, int len) {
     int found = 0;
     int space_indexes[2];
     int end = get_end(data, len);
     if (end < 0) {
-        return INCOMPLETE_REQUEST;
+        return HTTP_PARSE_INCOMPLETE_REQUEST;
     }
     for (int i = 0; i < end; i += 1) {
         if (data[i] == ' ') {
@@ -131,10 +131,10 @@ enum HTTP_REQUEST_STATE extract_request_line(struct http_parser *dst, char *data
 
                 dst->version.addr = data + space_indexes[1] + 1;
                 dst->version.len = end - space_indexes[1] - 1;
-                return SUCCESS;
+                return HTTP_PARSE_SUCCESS;
             }
             found = 1;
         }
     }
-    return ERR_MALFORMED_REQUEST;
+    return HTTP_PARSE_ERR_MALFORMED_REQUEST;
 }
