@@ -29,7 +29,7 @@ struct http_content {
 enum http_response_resolve_state resolve_target(struct connection *con, int not_found);
 enum http_construct_headers_state construct_http_headers(struct connection *con);
 
-#define HTTP_RESPONSE_OK "HTTP/1.1 200 OK\r\n"
+#define HTTP_RESPONSE_OK "HTTP/1.1 200 OK"
 #define HTTP_RESPONSE_OK_LEN sizeof(HTTP_RESPONSE_OK) - 1 // -1 to not count \0 as part of the response
 
 #define HTTP_RESPONSE_CONTENT_LEN_HEADER "Content-Length: "
