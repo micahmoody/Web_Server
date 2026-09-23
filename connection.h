@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "http-parse.h"
+#include "http-response.h"
 
 #ifndef CONNECTION_H
 #define CONNECTION_H
@@ -8,6 +9,7 @@ struct connection {
     int fd;
 
     struct http_parser hp;
+    struct http_content content;
 
     char *read_buf;
     char *write_buf;

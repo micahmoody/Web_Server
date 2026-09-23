@@ -23,4 +23,10 @@
 //www
 #define DOCUMENT_ROOT "./www"
 
+//file serving
+#define STREAM_CHUNK_SIZE 1024
+
+//404
+#define HTTP_404_FILE_PATH "./www/notfound.html" //this path is not relative to document_root
+
 #endif

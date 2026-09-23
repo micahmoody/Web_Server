@@ -16,6 +16,7 @@
 #include "constants.h"
 #include "connection.h"
 #include "http-parse.h"
+#include "http-response.h"
 
 int main() {
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -97,6 +98,9 @@ int main() {
                     }
                     memset(con_ptr, 0, sizeof *con_ptr);
 
+                    con_ptr->content.ffd = -1;
+                    con_ptr->content.path = NULL;
+
                     con_ptr -> fd = cfd;
                     con_ptr -> rs = INITIAL_READ_BUFFER_SIZE;
                     con_ptr -> ws = INITIAL_WRITE_BUFFER_SIZE;
@@ -168,10 +172,47 @@ int main() {
                                     disconnect(epfd, con);
                                     break;
                                 }
+
+                                //construct http response
+                                enum http_response_resolve_state rs = resolve_target(con, 0);
+                                if (rs == HTTP_RESOLVE_MALLOC_ERROR || rs == HTTP_RESOLVE_OPEN_ERROR) {
+                                    disconnect(epfd, con);
+                                    break;  
+                                }
+                                if (rs == HTTP_RESOLVE_NO_404) {
+                                    disconnect(epfd, con);
+                                    break;
+                                } else {
+                                    enum http_construct_headers_state cs;
+
+                                    handle_cs_state:
+                                    cs = construct_http_headers(con);
+                                    if (cs == HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR) {
+                                        disconnect(epfd, con);
+                                        break;
+                                    }
+                                    if (cs == HTTP_CONSTRUCT_HEADERS_SMALL_BUFFER) {
+                                        int ns = con->ws * WRITE_BUFFER_RESIZE_FACTOR;
+                                        char *nwrite_buf = realloc(con->write_buf, ns);
+                                        if (nwrite_buf == NULL) {
+                                            perror("realloc");
+                                            disconnect(epfd, con);
+                                            break;
+                                        }
+                                        con->write_buf = nwrite_buf;
+                                        con->ws = ns;
+                                        goto handle_cs_state;
+                                    }
+                                }
+
+                                //register interest in writability
                                 ev.events = EPOLLOUT;
                                 ev.data.ptr = con;
-                                epoll_ctl(epfd, EPOLL_CTL_MOD, con->fd, &ev);
-                                break;
+                                if (epoll_ctl(epfd, EPOLL_CTL_MOD, con->fd, &ev) < 0) {
+                                    perror("epoll_ctl");
+                                    disconnect(epfd, con);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -184,6 +225,11 @@ int main() {
                                     break;
                                 }
                                 perror("write");
+
+                                disconnect(epfd, con);
+                                break;
+                            }
+                            if (n == 0) {
                                 disconnect(epfd, con);
                                 break;
                             }

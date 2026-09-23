@@ -1,9 +1,13 @@
+#include "http-parse.h"
+
 #ifndef HTTP_RESPONSE_H
 
 #define HTTP_RESPONSE_H
 
+struct connection; //avoid circular dependency by defining connection here instead of including the header file
+
 enum http_response_resolve_state {
-    HTTP_RESOLVE_NOT_FOUND,
+    HTTP_RESOLVE_NO_404,
     HTTP_RESOLVE_MALLOC_ERROR,
     HTTP_RESOLVE_OPEN_ERROR,
     HTTP_RESOLVE_SUCCESS
@@ -15,8 +19,15 @@ enum http_construct_headers_state {
     HTTP_CONSTRUCT_HEADERS_SUCCESS
 };
 
-enum http_response_resolve_state resolve_target(struct http_parser *hp, char **dst_path, int *ffd);
-enum http_construct_headers_state construct_http_headers(struct connection *con, int fd);
+struct http_content {
+    int fp; //file fd position
+    int ffd; //content file descriptor
+    int fs; //file size
+    char *path; //path to file
+};
+
+enum http_response_resolve_state resolve_target(struct connection *con, int not_found);
+enum http_construct_headers_state construct_http_headers(struct connection *con);
 
 #define HTTP_RESPONSE_OK "HTTP/1.1 200 OK\r\n"
 #define HTTP_RESPONSE_OK_LEN sizeof(HTTP_RESPONSE_OK) - 1 // -1 to not count \0 as part of the response
