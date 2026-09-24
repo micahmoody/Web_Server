@@ -16,24 +16,16 @@ static const struct mime_type mime_types[] = {
 };
 
 const char *get_mime_type(char *ext, int len) {
-    int equals, j;
+    int j;
     for (int i = 0; i < sizeof(mime_types)/sizeof(struct mime_type); i += 1) {
-        equals = 1;
         j = 0;
-        while (1) {
-            if (ext[j] != mime_types[i].extension[j]) {
-                equals = 0;
-                break;
-            }
-            if (j == len) {
-                break;
-            }
-            if (mime_types[i].extension[j] == '\0' && len < 0) {
+        while (mime_types[i].extension[j] != '\0') {
+            if (j >= len || ext[j] != mime_types[i].extension[j]) {
                 break;
             }
             j += 1;
         }
-        if (equals) {
+        if (mime_types[i].extension[j] == '\0' && j == len) {
             return mime_types[i].type;
         }
     }
