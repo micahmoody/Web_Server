@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "constants.h"
 
 struct mime_type {
     const char *extension;
@@ -34,5 +35,5 @@ const char *get_mime_type(char *ext) {
             return mime_types[i].type;
         }
     }
-    return NULL;
+    return FALLBACK_MIME_TYPE;
 }
