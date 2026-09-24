@@ -134,3 +134,33 @@ enum HTTP_PARSE_STATE extract_request_line(struct http_parser *dst, char *data, 
     }
     return HTTP_PARSE_ERR_MALFORMED_REQUEST;
 }
+
+int get_extension_index(char *target, int len) { // pass -1 to use \0 as end of string, otherwise pass len
+    int i = 0, last_period = -1;
+    if (len < 0) {
+        while (1) {
+            if (target[i] == '.') {
+                last_period = i;
+                i += 1;
+                continue;
+            }
+            if (target[i] == '\0') {
+                break;
+            }
+            i += 1;
+        }
+    } else {
+        while (1) {
+            if (i == len) {
+                break;
+            }
+            if (target[i] == '.') {
+                last_period = i;
+                i += 1;
+                continue;
+            }
+            i += 1;
+        }
+    }
+    return last_period;
+}

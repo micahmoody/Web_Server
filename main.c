@@ -225,7 +225,6 @@ int main() {
                                     break;
                                 }
                                 perror("write");
-
                                 disconnect(epfd, con);
                                 break;
                             }

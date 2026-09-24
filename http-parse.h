@@ -32,5 +32,6 @@ int get_end(char *start, int len);
 int get_dbend(char *start, int len);
 enum HTTP_PARSE_STATE extract_request_line(struct http_parser *dst, char *data, int len);
 enum HTTP_PARSE_STATE extract_headers(struct http_parser *dst, char *data, int len);
+int get_extension_index(char *target, int len);
 
 #endif

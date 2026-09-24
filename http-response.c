@@ -9,6 +9,7 @@
 #include "connection.h"
 #include "http-response.h"
 #include "http-parse.h"
+#include "mime-types.h"
 
 struct connection;
 
@@ -50,9 +51,19 @@ enum http_construct_headers_state construct_http_headers(struct connection *con)
         perror("fstat");
         return HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR;
     }
+    int path_len = strlen(con->content.path);
+    int index = get_extension_index(con->content.path, path_len);
+    const char *mt;
+    if (index < 0) {
+        mt = FALLBACK_MIME_TYPE;
+    } else {
+        mt = get_mime_type(con->content.path + index, path_len - index);
+    }
     int n = snprintf(con->write_buf, con->ws, 
-        "%s\r\n%s%ld\r\n\r\n", 
-        HTTP_RESPONSE_OK, HTTP_RESPONSE_CONTENT_LEN_HEADER, st.st_size
+        "%s\r\n%s%ld\r\n%s%s\r\n\r\n", 
+        HTTP_RESPONSE_OK, 
+        HTTP_RESPONSE_CONTENT_LEN_HEADER, st.st_size,
+        HTTP_RESPONSE_CONTENT_TYPE_HEADER, mt
     );
     if (n >= con->ws) {
         return HTTP_CONSTRUCT_HEADERS_SMALL_BUFFER;
