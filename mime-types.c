@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "constants.h"
 
 struct mime_type {
@@ -16,7 +15,7 @@ static const struct mime_type mime_types[] = {
     {".gif", "image/gif"}
 };
 
-const char *get_mime_type(char *ext) {
+const char *get_mime_type(char *ext, int len) {
     int equals, j;
     for (int i = 0; i < sizeof(mime_types)/sizeof(struct mime_type); i += 1) {
         equals = 1;
@@ -26,7 +25,10 @@ const char *get_mime_type(char *ext) {
                 equals = 0;
                 break;
             }
-            if (mime_types[i].extension[j] == '\0') {
+            if (j == len) {
+                break;
+            }
+            if (mime_types[i].extension[j] == '\0' && len < 0) {
                 break;
             }
             j += 1;

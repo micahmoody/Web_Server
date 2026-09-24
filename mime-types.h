@@ -2,6 +2,6 @@
 
 #define MIME_TYPES_H
 
-char *get_mime_type(char *ext);
+const char *get_mime_type(char *ext, int len);
 
 #endif
