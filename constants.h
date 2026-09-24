@@ -22,6 +22,7 @@
 
 //www
 #define DOCUMENT_ROOT "./www"
+#define DEFAULT_PATH "./www/index.html"
 
 //file serving
 #define STREAM_CHUNK_SIZE 1024

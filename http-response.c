@@ -17,18 +17,36 @@ enum http_response_resolve_state resolve_target(struct connection *con, int not_
     if (not_found > 1) {
         return HTTP_RESOLVE_NO_404;
     }
-    int root_len = strlen(DOCUMENT_ROOT);
-    char *path = malloc(not_found ? strlen(HTTP_404_FILE_PATH) + 1 : (root_len + con->hp.target.len + 1)); //this must be freed after function call unless error
-    if (path == NULL) {
-        perror("malloc");
-        return HTTP_RESOLVE_MALLOC_ERROR;
-    }
+    char *path;
+    int root_len;
+
     if (not_found) {
-        sprintf(path, "%s", HTTP_404_FILE_PATH);
+        path = malloc(strlen(HTTP_404_FILE_PATH) + 1);
+        if (path == NULL) {
+            perror("malloc");
+            return HTTP_RESOLVE_MALLOC_ERROR;
+        }
+        strcpy(path, HTTP_404_FILE_PATH);
     } else {
-        memcpy(path, DOCUMENT_ROOT, root_len);
-        memcpy(path + root_len, con->hp.target.addr, con->hp.target.len); //this is vulnerable to path traversal e.g. ../../../etc/passwd
-        *(path + root_len + con->hp.target.len) = '\0';
+        if (con->hp.target.len == 1 && *con->hp.target.addr == '/') {
+            path = malloc(strlen(DEFAULT_PATH) + 1);
+            if (path == NULL) {
+                perror("malloc");
+                return HTTP_RESOLVE_MALLOC_ERROR;
+            }
+            strcpy(path, DEFAULT_PATH);
+
+        } else {
+            root_len = strlen(DOCUMENT_ROOT);
+            path = malloc(root_len + con->hp.target.len + 1); //this must be freed after function call unless error
+            if (path == NULL) {
+                perror("malloc");
+                return HTTP_RESOLVE_MALLOC_ERROR;
+            }
+            memcpy(path, DOCUMENT_ROOT, root_len);
+            memcpy(path + root_len, con->hp.target.addr, con->hp.target.len); //this is vulnerable to path traversal e.g. ../../../etc/passwd
+            *(path + root_len + con->hp.target.len) = '\0';
+        }
     }
     int target = open(path, O_RDONLY);
     if (target < 0) {
