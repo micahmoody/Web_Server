@@ -1,10 +1,10 @@
-## HTTP Web Server
+# HTTP Web Server
 
 This is a practice project for continued experience in network and concurrent programming in C. 
 
 As of Sep 26 2026, it works (accepts clients, reads and parses HTTP requests, constructs and sends back an HTTP response and file), but it is not complete.
 
-# How it works
+## How it works
 
 The server uses edge-triggered epoll() and nonblocking sockets to create an event-driven loop, which handles the listening socket, readable client FDs and writable client FDS.
 
@@ -14,7 +14,7 @@ Once the full request by the client has been parsed, the server registers intere
 
 The server then disconnects the client. 
 
-# Vulnerabilities & bugs
+## Vulnerabilities & bugs
 
 - resolve_target() will resolve the path to a file even if it is outside of the document root. This means a client could access potentially vulnerable files (e.g. http://server-ip:8080/../../../../etc/passwd).
 
@@ -22,6 +22,8 @@ The server then disconnects the client.
 
 - Though unlikely, a particular connection could be closed even after triggering an event and before that event is handled. The server would then try to handle that event, causing use-after-free and bad FD issues.
 
-# Other intended additions
+- While headers extraction is fairly secure and detects malformed request, the request parsing function just assumes it's handed a line with two spaces. This would be very easy to exploit.
+
+## Other intended additions
 
 - Implement keep-alive. Currently the server disconnects after one successful read/write exchange.
