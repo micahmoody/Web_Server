@@ -88,5 +88,6 @@ enum http_construct_headers_state construct_http_headers(struct connection *con)
     }
     con->wl = n; //number of bytes written minus null terminator
     con->wp = 0;
+    con->content.fs = st.st_size;
     return HTTP_CONSTRUCT_HEADERS_SUCCESS;
 }

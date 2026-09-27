@@ -1,3 +1,5 @@
+#include <sys/sendfile.h>
+#include <sys/types.h>
 #include "http-parse.h"
 
 #ifndef HTTP_RESPONSE_H
@@ -20,9 +22,9 @@ enum http_construct_headers_state {
 };
 
 struct http_content {
-    int fp; //file fd position
+    off_t fp; //file offset
     int ffd; //content file descriptor
-    int fs; //file size
+    off_t fs; //file size
     char *path; //path to file
 };
 

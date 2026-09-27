@@ -1,20 +1,20 @@
 #define _GNU_SOURCE
 
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 #include <sys/epoll.h>
 
-#include "constants.h"
 #include "connection.h"
+#include "constants.h"
 #include "http-parse.h"
 #include "http-response.h"
 
@@ -80,7 +80,7 @@ int main() {
         }
         for (int i = 0; i < n; i += 1) {
             struct connection *con = ready[i].data.ptr;
-            if (con -> fd == lfd) {
+            if (con->fd == lfd) {
                 while (1) {
                     int cfd = accept4(lfd, NULL, NULL, SOCK_NONBLOCK);
                     if (cfd < 0) {
@@ -101,17 +101,17 @@ int main() {
                     con_ptr->content.ffd = -1;
                     con_ptr->content.path = NULL;
 
-                    con_ptr -> fd = cfd;
-                    con_ptr -> rs = INITIAL_READ_BUFFER_SIZE;
-                    con_ptr -> ws = INITIAL_WRITE_BUFFER_SIZE;
-                    con_ptr -> read_buf = malloc(con_ptr -> rs);
-                    if (con_ptr -> read_buf == NULL) {
+                    con_ptr->fd = cfd;
+                    con_ptr->rs = INITIAL_READ_BUFFER_SIZE;
+                    con_ptr->ws = INITIAL_WRITE_BUFFER_SIZE;
+                    con_ptr->read_buf = malloc(con_ptr->rs);
+                    if (con_ptr->read_buf == NULL) {
                         perror("malloc");
                         disconnect(epfd, con_ptr);
                         continue;
                     }
 
-                    con_ptr->write_buf = malloc(con_ptr -> ws);
+                    con_ptr->write_buf = malloc(con_ptr->ws);
                     if (con_ptr->write_buf == NULL) {
                         perror("malloc");
                         disconnect(epfd, con_ptr);
@@ -130,22 +130,22 @@ int main() {
             } else {
                 if (ready[i].events & EPOLLIN) {
                     while (1) {
-                        if (con -> rs == con -> rp) {
-                            int ns = con -> rs * READ_BUFFER_RESIZE_FACTOR;
+                        if (con->rs == con->rp) {
+                            int ns = con->rs * READ_BUFFER_RESIZE_FACTOR;
                             if (ns > MAX_READ_BUFFER_SIZE) {
                                 disconnect(epfd, con);
                                 break;
                             }
-                            char *nread_buf = realloc(con -> read_buf, ns);
+                            char *nread_buf = realloc(con->read_buf, ns);
                             if (nread_buf == NULL) {
                                 perror("realloc");
                                 disconnect(epfd, con);
                                 break;
                             }
-                            con -> read_buf = nread_buf;
-                            con -> rs = ns;
+                            con->read_buf = nread_buf;
+                            con->rs = ns;
                         }
-                        int n = read(con -> fd, (con -> read_buf) + (con -> rp), (con -> rs) - (con -> rp));
+                        int n = read(con->fd, (con->read_buf) + (con->rp), (con->rs) - (con->rp));
                         if (n < 0) {
                             if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
                                 break;
@@ -158,7 +158,7 @@ int main() {
                             disconnect(epfd, con);
                             break;
                         }
-                        con -> rp += n;
+                        con->rp += n;
                         int end_header;
                         if ((end_header = get_dbend(con->read_buf, con->rp)) > 0) {
                             enum HTTP_PARSE_STATE request = extract_request_line(&(con->hp), con->read_buf, con->rp);
@@ -168,16 +168,17 @@ int main() {
                             }
                             if (request == HTTP_PARSE_SUCCESS) {
                                 request = extract_headers(&con->hp, con->read_buf, con->rp);
-                                if (request == HTTP_PARSE_ERR_MALFORMED_REQUEST || request == HTTP_PARSE_ERR_TOO_MANY_HEADERS) {
+                                if (request == HTTP_PARSE_ERR_MALFORMED_REQUEST ||
+                                    request == HTTP_PARSE_ERR_TOO_MANY_HEADERS) {
                                     disconnect(epfd, con);
                                     break;
                                 }
 
-                                //construct http response
+                                // construct http response
                                 enum http_response_resolve_state rs = resolve_target(con, 0);
                                 if (rs == HTTP_RESOLVE_MALLOC_ERROR || rs == HTTP_RESOLVE_OPEN_ERROR) {
                                     disconnect(epfd, con);
-                                    break;  
+                                    break;
                                 }
                                 if (rs == HTTP_RESOLVE_NO_404) {
                                     disconnect(epfd, con);
@@ -185,7 +186,7 @@ int main() {
                                 } else {
                                     enum http_construct_headers_state cs;
 
-                                    handle_cs_state:
+                                handle_cs_state:
                                     cs = construct_http_headers(con);
                                     if (cs == HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR) {
                                         disconnect(epfd, con);
@@ -205,7 +206,7 @@ int main() {
                                     }
                                 }
 
-                                //register interest in writability
+                                // register interest in writability
                                 ev.events = EPOLLOUT;
                                 ev.data.ptr = con;
                                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, con->fd, &ev) < 0) {
@@ -213,12 +214,32 @@ int main() {
                                     disconnect(epfd, con);
                                     break;
                                 }
+                                break;
                             }
                         }
                     }
                 } else {
                     if (ready[i].events & EPOLLOUT) {
                         while (1) {
+                            if (con->wp >= con->wl) {
+                                ssize_t n = sendfile(con->fd, con->content.ffd, &con->content.fp, STREAM_CHUNK_SIZE);
+                                if (n < 0) {
+                                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                                        break;
+                                    }
+                                    perror("sendfile");
+                                    disconnect(epfd, con);
+                                    break;
+                                }
+                                if (con->content.fp == con->content.fs) {
+                                    // successful read/write exchange of http
+                                    // headers and file with client. disconnect
+                                    // for now, implement keep-alive later
+                                    disconnect(epfd, con);
+                                    break;
+                                }
+                                continue;
+                            }
                             int n = write(con->fd, con->write_buf + con->wp, con->wl - con->wp);
                             if (n < 0) {
                                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -233,14 +254,10 @@ int main() {
                                 break;
                             }
                             con->wp += n;
-                            if (con->wp == con->wl) {
-                                disconnect(epfd, con);
-                                break; 
-                            }
                         }
                     }
                 }
             }
         }
-    }    
+    }
 }
