@@ -18,7 +18,7 @@
 #define WRITE_BUFFER_RESIZE_FACTOR 2
 
 //http
-#define MAX_HEADER_COUNT 12
+#define MAX_HEADER_COUNT 32
 
 //www
 #define DOCUMENT_ROOT "./www"
