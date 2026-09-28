@@ -3,3 +3,6 @@
 
 #unignore all with extensions
 !*.*
+
+#clang formatting config file
+.clang-format
