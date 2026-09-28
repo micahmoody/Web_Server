@@ -20,6 +20,7 @@ struct response_code {
 
 struct response_code response_codes[] = {
     {200, HTTP_RESPONSE_OK},
+    {403, HTTP_RESPONSE_FORBIDDEN},
     {404, HTTP_RESPONSE_404}
 };
 
@@ -54,54 +55,99 @@ enum http_response_resolve_state resolve_target(struct connection *con, int not_
                 return HTTP_RESOLVE_MALLOC_ERROR;
             }
             strcpy(path, DEFAULT_PATH);
-
         } else {
             root_len = strlen(DOCUMENT_ROOT);
-            path = malloc(root_len + con->hp.target.len + 1); //this must be freed after function call unless error
+            path = malloc(root_len + con->hp.target.len + 1);
             if (path == NULL) {
                 perror("malloc");
                 return HTTP_RESOLVE_MALLOC_ERROR;
             }
             memcpy(path, DOCUMENT_ROOT, root_len);
-            memcpy(path + root_len, con->hp.target.addr, con->hp.target.len); //this is vulnerable to path traversal e.g. ../../../etc/passwd
+            memcpy(path + root_len, con->hp.target.addr, con->hp.target.len);
             *(path + root_len + con->hp.target.len) = '\0';
         }
     }
-    int target = open(path, O_RDONLY);
-    if (target < 0) {
+
+    char *resolved = realpath(path, NULL);
+    if (resolved == NULL) {
         int err = errno;
         free(path);
         if (err == ENOENT) {
             return resolve_target(con, not_found + 1);
         }
+        perror("realpath");
+        return HTTP_RESOLVE_REALPATH_ERROR;
+    }
+    char *resolved_docroot = realpath(DOCUMENT_ROOT, NULL);
+    if (resolved_docroot == NULL) {
+        int err = errno;
+        free(path);
+        free(resolved);
+        if (err == ENOENT) {
+            return HTTP_RESOLVE_NO_DOCROOT;
+        }
+        perror("realpath");
+        return HTTP_RESOLVE_REALPATH_ERROR;
+    }
+    size_t rdocroot_len = strlen(resolved_docroot);
+    for (size_t i = 0; i < rdocroot_len; i += 1) {
+        if (resolved[i] != resolved_docroot[i]) {
+            free(resolved);
+            free(resolved_docroot);
+            free(path);
+            return HTTP_RESOLVE_PATH_ESCAPE;
+        }
+    }
+    if (resolved[rdocroot_len] != '/') {
+        free(resolved);
+        free(resolved_docroot);
+        free(path);
+        return HTTP_RESOLVE_PATH_ESCAPE;
+    }
+    free(resolved);
+    free(resolved_docroot);
+
+    int target = open(path, O_RDONLY);
+    if (target < 0) {
         perror("open");
+        free(path);
         return HTTP_RESOLVE_OPEN_ERROR;
     }
+
     con->content.path = path;
     con->content.ffd = target;
-    return not_found ? HTTP_404 : HTTP_RESOLVE_SUCCESS;
+    return not_found ? HTTP_RESOLVE_404 : HTTP_RESOLVE_SUCCESS;
 }
 
 enum http_construct_headers_state construct_http_headers(struct connection *con, int code) {
     struct stat st;
-    if (fstat(con->content.ffd, &st) < 0) {
-        perror("fstat");
-        return HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR;
-    }
-    int path_len = strlen(con->content.path);
-    int index = get_extension_index(con->content.path, path_len);
+    int path_len, index, n;
     const char *mt;
-    if (index < 0) {
-        mt = FALLBACK_MIME_TYPE;
+    if (code != 403) {
+        if (fstat(con->content.ffd, &st) < 0) {
+            perror("fstat");
+            return HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR;
+        }
+        path_len = strlen(con->content.path);
+        index = get_extension_index(con->content.path, path_len);
+        if (index < 0) {
+            mt = FALLBACK_MIME_TYPE;
+        } else {
+            mt = get_mime_type(con->content.path + index, path_len - index);
+        }
+        n = snprintf(con->write_buf, con->ws, 
+            "%s\r\n%s%ld\r\n%s%s\r\n\r\n", 
+            get_response(code), 
+            HTTP_RESPONSE_CONTENT_LEN_HEADER, st.st_size,
+            HTTP_RESPONSE_CONTENT_TYPE_HEADER, mt
+        );
     } else {
-        mt = get_mime_type(con->content.path + index, path_len - index);
+        n = snprintf(con->write_buf, con->ws,
+            "%s\r\n%s0\r\n\r\n",
+            get_response(code),
+            HTTP_RESPONSE_CONTENT_LEN_HEADER
+        );
     }
-    int n = snprintf(con->write_buf, con->ws, 
-        "%s\r\n%s%ld\r\n%s%s\r\n\r\n", 
-        get_response(code), 
-        HTTP_RESPONSE_CONTENT_LEN_HEADER, st.st_size,
-        HTTP_RESPONSE_CONTENT_TYPE_HEADER, mt
-    );
     if (n >= con->ws) {
         return HTTP_CONSTRUCT_HEADERS_SMALL_BUFFER;
     }

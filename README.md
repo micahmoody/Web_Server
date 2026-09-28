@@ -16,9 +16,9 @@ The server then disconnects the client.
 
 ## Vulnerabilities & bugs
 
-- resolve_target() will resolve the path to a file even if it is outside of the document root. This means a client could access potentially vulnerable files (e.g. http://server-ip:8080/../../../../etc/passwd).
+- resolve_target() will resolve the path to a file even if it is outside of the document root. This means a client could access potentially vulnerable files (e.g. http://server-ip:8080/../../../../etc/passwd). (fixed)
 
-- The server will respond with status code 200 even when sending a 404 page.
+- The server will respond with status code 200 even when sending a 404 page. (fixed)
 
 - Though unlikely, a particular connection could be closed even after triggering an event and before that event is handled. The server would then try to handle that event, causing use-after-free and bad FD issues.
 

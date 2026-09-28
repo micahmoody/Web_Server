@@ -11,9 +11,12 @@ struct connection; //avoid circular dependency by defining connection here inste
 enum http_response_resolve_state {
     HTTP_RESOLVE_NO_404,
     HTTP_RESOLVE_MALLOC_ERROR,
+    HTTP_RESOLVE_REALPATH_ERROR,
     HTTP_RESOLVE_OPEN_ERROR,
+    HTTP_RESOLVE_NO_DOCROOT,
     HTTP_RESOLVE_SUCCESS,
-    HTTP_404
+    HTTP_RESOLVE_PATH_ESCAPE,
+    HTTP_RESOLVE_404
 };
 
 enum http_construct_headers_state {
@@ -36,6 +39,8 @@ enum http_construct_headers_state construct_http_headers(struct connection *con,
 #define HTTP_RESPONSE_OK_LEN sizeof(HTTP_RESPONSE_OK) - 1 // -1 to not count \0 as part of the response
 
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found"
+
+#define HTTP_RESPONSE_FORBIDDEN "HTTP/1.1 403 Forbidden"
 
 #define HTTP_RESPONSE_CONTENT_LEN_HEADER "Content-Length: "
 #define HTTP_RESPONSE_CONTENT_LEN_HEADER_LEN sizeof(HTTP_RESPONSE_CONTENT_LEN_HEADER) - 1

@@ -176,16 +176,28 @@ int main() {
 
                                 // construct http response
                                 enum http_response_resolve_state rs = resolve_target(con, 0);
-                                if (rs == HTTP_RESOLVE_MALLOC_ERROR || rs == HTTP_RESOLVE_OPEN_ERROR) {
-                                    disconnect(epfd, con);
-                                    break;
-                                }
-                                if (rs == HTTP_RESOLVE_NO_404) {
+                                if (rs == HTTP_RESOLVE_MALLOC_ERROR || 
+                                    rs == HTTP_RESOLVE_OPEN_ERROR || 
+                                    rs == HTTP_RESOLVE_REALPATH_ERROR || 
+                                    rs == HTTP_RESOLVE_NO_DOCROOT ||
+                                    rs == HTTP_RESOLVE_NO_404
+                                ) {
                                     disconnect(epfd, con);
                                     break;
                                 } else {
                                     enum http_construct_headers_state cs;
-                                    int code = (rs == HTTP_404) ? 404 : 200;
+                                    
+                                    int code, err_break = 0;
+                                    switch (rs) {
+                                        case HTTP_RESOLVE_SUCCESS: code = 200; break;
+                                        case HTTP_RESOLVE_PATH_ESCAPE: code = 403; break;
+                                        case HTTP_RESOLVE_404: code = 404; break;
+                                        default: err_break = 1; break;
+                                    }
+                                    if (err_break) {
+                                        disconnect(epfd, con);
+                                        break;
+                                    }
 
                                     handle_cs_state:
                                     cs = construct_http_headers(con, code);
