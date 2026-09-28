@@ -13,6 +13,25 @@
 
 struct connection;
 
+struct response_code {
+    int code;
+    char *response;
+};
+
+struct response_code response_codes[] = {
+    {200, HTTP_RESPONSE_OK},
+    {404, HTTP_RESPONSE_404}
+};
+
+char *get_response(int code) {
+    for (int i = 0; i < sizeof(response_codes)/sizeof(struct response_code); i += 1) {
+        if (response_codes[i].code == code) {
+            return response_codes[i].response;
+        }
+    }
+    return NULL;
+}
+
 enum http_response_resolve_state resolve_target(struct connection *con, int not_found) { //call with not_found = 0
     if (not_found > 1) {
         return HTTP_RESOLVE_NO_404;
@@ -60,10 +79,10 @@ enum http_response_resolve_state resolve_target(struct connection *con, int not_
     }
     con->content.path = path;
     con->content.ffd = target;
-    return HTTP_RESOLVE_SUCCESS;
+    return not_found ? HTTP_404 : HTTP_RESOLVE_SUCCESS;
 }
 
-enum http_construct_headers_state construct_http_headers(struct connection *con) {
+enum http_construct_headers_state construct_http_headers(struct connection *con, int code) {
     struct stat st;
     if (fstat(con->content.ffd, &st) < 0) {
         perror("fstat");
@@ -79,7 +98,7 @@ enum http_construct_headers_state construct_http_headers(struct connection *con)
     }
     int n = snprintf(con->write_buf, con->ws, 
         "%s\r\n%s%ld\r\n%s%s\r\n\r\n", 
-        HTTP_RESPONSE_OK, 
+        get_response(code), 
         HTTP_RESPONSE_CONTENT_LEN_HEADER, st.st_size,
         HTTP_RESPONSE_CONTENT_TYPE_HEADER, mt
     );

@@ -185,9 +185,10 @@ int main() {
                                     break;
                                 } else {
                                     enum http_construct_headers_state cs;
+                                    int code = (rs == HTTP_404) ? 404 : 200;
 
-                                handle_cs_state:
-                                    cs = construct_http_headers(con);
+                                    handle_cs_state:
+                                    cs = construct_http_headers(con, code);
                                     if (cs == HTTP_CONSTRUCT_HEADERS_FSTAT_ERROR) {
                                         disconnect(epfd, con);
                                         break;
