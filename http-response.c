@@ -20,8 +20,13 @@ struct response_code {
 
 struct response_code response_codes[] = {
     {200, HTTP_RESPONSE_OK},
+    {400, HTTP_RESPONSE_BAD_REQUEST},
     {403, HTTP_RESPONSE_FORBIDDEN},
-    {404, HTTP_RESPONSE_404}
+    {404, HTTP_RESPONSE_404},
+    {405, HTTP_RESPONSE_BAD_METHOD},
+    {413, HTTP_RESPONSE_413},
+    {431, HTTP_RESPONSE_431},
+    {500, HTTP_RESPONSE_500},
 };
 
 char *get_response(int code) {

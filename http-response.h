@@ -38,9 +38,19 @@ enum http_construct_headers_state construct_http_headers(struct connection *con,
 #define HTTP_RESPONSE_OK "HTTP/1.1 200 OK"
 #define HTTP_RESPONSE_OK_LEN sizeof(HTTP_RESPONSE_OK) - 1 // -1 to not count \0 as part of the response
 
+#define HTTP_RESPONSE_BAD_REQUEST "HTTP/1.1 400 Bad Request"
+
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found"
 
 #define HTTP_RESPONSE_FORBIDDEN "HTTP/1.1 403 Forbidden"
+
+#define HTTP_RESPONSE_BAD_METHOD "HTTP/1.1 405 Method Not Allowed"
+
+#define HTTP_RESPONSE_413 "HTTP/1.1 413 Payload Too Large"
+
+#define HTTP_RESPONSE_431 "HTTP/1.1 431 Request Header Fields Too Large"
+
+#define HTTP_RESPONSE_500 "HTTP/1.1 500 Internal Server Error"
 
 #define HTTP_RESPONSE_CONTENT_LEN_HEADER "Content-Length: "
 #define HTTP_RESPONSE_CONTENT_LEN_HEADER_LEN sizeof(HTTP_RESPONSE_CONTENT_LEN_HEADER) - 1
