@@ -2,13 +2,16 @@
 
 #define EVENT_H
 
-struct event {
-    
-    int write;
-    int read;
-    int accept;
+enum event_owner_type {
+    EVENT_ACCEPT,
+    EVENT_CONNECTION
+};
 
-    struct connection *con;
+struct event {
+   
+    enum event_owner_type type;
+
+    void *data;
 
 };
 

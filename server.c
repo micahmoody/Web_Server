@@ -65,15 +65,14 @@ int server_init(struct server *s, struct server_config *config) {
         return -1;
     }
 
-    s->ev.accept = 1;
-    s->ev.write = s->ev.read = 0;
-    s->ev.con = NULL;
+    s->ev.type = EVENT_ACCEPT;
+    s->ev.data = s;
 
     struct epoll_event event;
     event.data.ptr = &s->ev;
     event.events = EPOLLIN;
 
-    if (epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &event)) {
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &event) < 0) {
         close(epfd);
         close(lfd);
 
