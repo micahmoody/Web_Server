@@ -87,3 +87,10 @@ int server_init(struct server *s, struct server_config *config) {
     return 0;
     
 }
+
+void server_destroy(struct server *s) {
+
+    close(s->lfd);
+    close(s->efd);
+
+}

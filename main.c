@@ -15,4 +15,6 @@ int main() {
     if (n < 0) {
         exit(1);
     }
+
+    server_destroy(&s);
 }

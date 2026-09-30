@@ -32,4 +32,6 @@ struct server {
 
 int server_init(struct server *s, struct server_config *config);
 
+void server_destroy(struct server *s);
+
 #endif
