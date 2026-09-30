@@ -1,8 +1,10 @@
-#include <stdint.h>
-
 #ifndef SERVER_H
 
 #define SERVER_H
+
+#include <stdint.h>
+
+#include "event.h"
 
 struct server_config {
 
@@ -19,7 +21,9 @@ struct server_config {
 
 struct server {
 
-    struct server_config *config;
+    struct server_config config;
+
+    struct event ev;
 
     int lfd;
     int efd;
