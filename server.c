@@ -14,6 +14,8 @@
 #include "server.h"
 #include "event.h"
 
+#define MAX_EVENTS 64
+
 int server_init(struct server *s, struct server_config *config) {
 
     int lfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -65,7 +67,7 @@ int server_init(struct server *s, struct server_config *config) {
         return -1;
     }
 
-    s->ev.type = EVENT_ACCEPT;
+    s->ev.type = EVENT_SERVER;
     s->ev.data = s;
 
     struct epoll_event event;
@@ -86,6 +88,41 @@ int server_init(struct server *s, struct server_config *config) {
 
     return 0;
     
+}
+
+int server_run(struct server *s) {
+
+    struct epoll_event events[MAX_EVENTS];
+
+    while (1) {
+
+        int n = epoll_wait(s->efd, events, MAX_EVENTS, -1);
+
+        if (n < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            perror("epoll_wait");
+            return -1;
+        }
+
+        for (int i = 0; i < n; i += 1) {
+
+            struct event *event = events[i].data.ptr;
+
+            switch (event->type) {
+                case EVENT_SERVER:
+                    printf("server event\n");
+                    break;
+                case EVENT_CONNECTION:
+                    printf("connection event\n");
+                    break;
+            }
+
+        }
+
+    }
+
 }
 
 void server_destroy(struct server *s) {

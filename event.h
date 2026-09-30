@@ -3,7 +3,7 @@
 #define EVENT_H
 
 enum event_owner_type {
-    EVENT_ACCEPT,
+    EVENT_SERVER,
     EVENT_CONNECTION
 };
 
