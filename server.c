@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -13,6 +15,7 @@
 
 #include "server.h"
 #include "event.h"
+#include "connection.h"
 
 #define MAX_EVENTS 64
 
@@ -90,6 +93,57 @@ int server_init(struct server *s, struct server_config *config) {
     
 }
 
+enum server_accept_result {
+    SERVER_ACCEPT_NO_CON,
+    SERVER_ACCEPT_ERR,
+    SERVER_ACCEPT_SUCCESS
+};
+
+enum server_accept_result server_accept(struct server *s) {
+
+    int cfd = accept4(s->lfd, NULL, NULL, SOCK_NONBLOCK);
+    if (cfd < 0) {
+
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return SERVER_ACCEPT_NO_CON;
+        }
+
+        perror("accept4");
+        return SERVER_ACCEPT_ERR;
+    }
+
+    struct connection *con = connection_create(cfd);
+    if (con == NULL) {
+        close(cfd);
+        return SERVER_ACCEPT_ERR;
+    }
+
+    con->ev.data = con;
+    con->ev.type = EVENT_CONNECTION;
+
+    struct epoll_event ev;
+    ev.data.ptr = &con->ev;
+    ev.events = EPOLLIN;
+
+    if (epoll_ctl(s->efd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
+        connection_close(-1, con);
+        connection_destroy(con);
+
+        perror("epoll_ctl");
+        return SERVER_ACCEPT_ERR;
+    }
+
+    return SERVER_ACCEPT_SUCCESS;
+
+}
+
+void server_destroy(struct server *s) {
+
+    close(s->lfd);
+    close(s->efd);
+
+}
+
 int server_run(struct server *s) {
 
     struct epoll_event events[MAX_EVENTS];
@@ -110,24 +164,24 @@ int server_run(struct server *s) {
 
             struct event *event = events[i].data.ptr;
 
+            enum server_accept_result accept_result;
+
             switch (event->type) {
                 case EVENT_SERVER:
-                    printf("server event\n");
+
+                    while ((accept_result = server_accept(s)) == SERVER_ACCEPT_SUCCESS) {}
+
                     break;
+
                 case EVENT_CONNECTION:
+
                     printf("connection event\n");
+
                     break;
             }
 
         }
 
     }
-
-}
-
-void server_destroy(struct server *s) {
-
-    close(s->lfd);
-    close(s->efd);
 
 }

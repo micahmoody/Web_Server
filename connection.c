@@ -29,6 +29,7 @@ struct connection *connection_create(int cfd) {
 
 }
 
+// pass epfd == -1 for connection_close to not attempt deleting cfd from epoll
 void connection_close(int epfd, struct connection *con) {
 
     if (!con->alive) {
@@ -37,8 +38,10 @@ void connection_close(int epfd, struct connection *con) {
 
     con->alive = 0;
 
-    if (epoll_ctl(epfd, EPOLL_CTL_DEL, con->cfd, NULL) < 0) {
-        perror("epoll_ctl");
+    if (epfd != -1) {
+        if (epoll_ctl(epfd, EPOLL_CTL_DEL, con->cfd, NULL) < 0) {
+            perror("epoll_ctl");
+        }
     }
 
     buffer_destroy(&con->read_buffer);
