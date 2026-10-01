@@ -196,8 +196,10 @@ int server_run(struct server *s) {
                         connection_destroy(con);
                     }
 
+                    break;
+
                 default: break;
-                
+
             }
             
         }

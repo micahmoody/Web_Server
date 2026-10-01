@@ -48,7 +48,7 @@ void buffer_clear(struct buffer *buf) {
 }
 
 void buffer_destroy(struct buffer *buf) {
+    free(buf->data);
     buf->data = NULL;
     buf->data_end = buf->cap = buf->position = 0;
-    free(buf->data);
 }

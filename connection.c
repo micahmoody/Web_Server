@@ -14,6 +14,11 @@ struct connection *connection_create(int cfd) {
 
     struct connection *con = malloc(sizeof(struct connection));
 
+    if (con == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+
     if (
         buffer_init(&con->read_buffer, INIT_READBUF_SIZE) < 0 ||
         buffer_init(&con->write_buffer, INIT_WRITEBUF_SIZE) < 0
