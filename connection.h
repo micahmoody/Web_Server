@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 
 #include "buffer.h"
+#include "event.h"
 
 struct connection {
 
@@ -15,9 +16,14 @@ struct connection {
     struct buffer read_buffer;
     struct buffer write_buffer;
 
-    struct sockaddr_storage client_addr;
-    socklen_t client_addr_len;
+    struct event ev;
 
 };
+
+struct connection *connection_create(int cfd);
+
+void connection_close(int epfd, struct connection *con);
+
+void connection_destroy(struct connection *con);
 
 #endif

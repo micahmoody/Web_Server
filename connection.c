@@ -1,4 +1,7 @@
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/epoll.h>
 #include <netinet/in.h>
 
 #include "connection.h"
@@ -21,8 +24,32 @@ struct connection *connection_create(int cfd) {
      
     con->alive = 1;
     con->cfd = cfd;
-    con->client_addr_len = sizeof(struct sockaddr_storage);
 
     return con;
+
+}
+
+void connection_close(int epfd, struct connection *con) {
+
+    if (!con->alive) {
+        return;
+    }
+
+    con->alive = 0;
+
+    if (epoll_ctl(epfd, EPOLL_CTL_DEL, con->cfd, NULL) < 0) {
+        perror("epoll_ctl");
+    }
+
+    buffer_destroy(&con->read_buffer);
+    buffer_destroy(&con->write_buffer);
+
+    close(con->cfd);
+
+}
+
+void connection_destroy(struct connection *con) {
+
+    free(con);
 
 }
