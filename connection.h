@@ -22,6 +22,9 @@ struct connection {
 
 struct connection *connection_create(int cfd);
 
+int connection_handle_event(struct connection *con, uint32_t events);
+
+// pass epfd == -1 for connection_close to not attempt deleting cfd from epoll
 void connection_close(int epfd, struct connection *con);
 
 void connection_destroy(struct connection *con);

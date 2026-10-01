@@ -175,11 +175,31 @@ int server_run(struct server *s) {
 
                 case EVENT_CONNECTION:
 
-                    printf("connection event\n");
+                    connection_handle_event(event->data, events[i].events);
 
                     break;
             }
 
+        }
+
+        for (int i = 0; i < n; i += 1) {
+
+            struct event *event = events[i].data.ptr;
+            struct connection *con;
+
+            switch (event->type) {
+
+                case EVENT_CONNECTION:
+
+                    con = event->data;
+                    if (!con->alive) {
+                        connection_destroy(con);
+                    }
+
+                default: break;
+                
+            }
+            
         }
 
     }
