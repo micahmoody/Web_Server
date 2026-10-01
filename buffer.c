@@ -38,6 +38,14 @@ char *buffer_data(struct buffer *buf) {
     return buf->data + buf->position;
 }
 
+char *buffer_addr(struct buffer *buf) {
+    return buf->data + buf->data_end;
+}
+
+void buffer_produce(struct buffer *buf, size_t n) {
+    buf->data_end += n;
+}
+
 size_t buffer_available(struct buffer *buf) {
     return buf->cap - buf->data_end;
 }

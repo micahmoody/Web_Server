@@ -19,6 +19,10 @@ void buffer_compact(struct buffer *buf);
 
 char *buffer_data(struct buffer *buf);
 
+char *buffer_addr(struct buffer *buf);
+
+void buffer_produce(struct buffer *buf, size_t n);
+
 size_t buffer_available(struct buffer *buf);
 
 void buffer_clear(struct buffer *buf);

@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <fcntl.h>
@@ -75,7 +74,7 @@ int server_init(struct server *s, struct server_config *config) {
 
     struct epoll_event event;
     event.data.ptr = &s->ev;
-    event.events = EPOLLIN;
+    event.events = EPOLLIN | EPOLLET;
 
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, lfd, &event) < 0) {
         close(epfd);
@@ -123,7 +122,7 @@ enum server_accept_result server_accept(struct server *s) {
 
     struct epoll_event ev;
     ev.data.ptr = &con->ev;
-    ev.events = EPOLLIN;
+    ev.events = EPOLLIN | EPOLLET;
 
     if (epoll_ctl(s->efd, EPOLL_CTL_ADD, cfd, &ev) < 0) {
         connection_close(-1, con);
@@ -175,7 +174,7 @@ int server_run(struct server *s) {
 
                 case EVENT_CONNECTION:
 
-                    connection_handle_event(event->data, events[i].events);
+                    connection_handle_event(s->efd, event->data, events[i].events);
 
                     break;
             }

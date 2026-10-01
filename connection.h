@@ -20,9 +20,15 @@ struct connection {
 
 };
 
+enum connection_read_result {
+    CONNECTION_READ_ERR,
+    CONNECTION_READ_CLOSE,
+    CONNECTION_READ_DRAINED
+};
+
 struct connection *connection_create(int cfd);
 
-int connection_handle_event(struct connection *con, uint32_t events);
+int connection_handle_event(int epfd, struct connection *con, uint32_t events);
 
 // pass epfd == -1 for connection_close to not attempt deleting cfd from epoll
 void connection_close(int epfd, struct connection *con);
