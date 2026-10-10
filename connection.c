@@ -6,6 +6,7 @@
 
 #include "connection.h"
 #include "buffer.h"
+#include "http-parse.h"
 
 #define INIT_READBUF_SIZE 4096
 #define READBUF_REALLOC_FACTOR 2
@@ -28,6 +29,13 @@ struct connection *connection_create(int cfd) {
 
     if (buffer_init(&con->write_buffer, INIT_WRITEBUF_SIZE) < 0) {
         buffer_destroy(&con->read_buffer);
+        free(con);
+        return NULL;
+    }
+
+    if (http_parser_init(&con->parser) < 0) {
+        buffer_destroy(&con->read_buffer);
+        buffer_destroy(&con->write_buffer);
         free(con);
         return NULL;
     }
@@ -69,16 +77,12 @@ enum connection_read_result connection_read(struct connection *con) {
 
             buffer_produce(&con->read_buffer, n);
             if (buffer_available(&con->read_buffer) == 0) {
-                buffer_compact(&con->read_buffer);
-                if (buffer_available(&con->read_buffer) == 0) {
-                    if (buffer_resize(&con->read_buffer, con->read_buffer.cap * READBUF_REALLOC_FACTOR) < 0) {
-                        return CONNECTION_READ_ERR;
-                    }
+                if (buffer_resize(&con->read_buffer, con->read_buffer.cap * READBUF_REALLOC_FACTOR) < 0) {
+                    return CONNECTION_READ_ERR;
                 }
             }
 
-            printf("read %zd bytes, buffer contains %zu bytes\n",
-                n, con->read_buffer.data_end);
+            printf("read %zd bytes, buffer contains %zu bytes\n", n, con->read_buffer.data_end);
             fflush(stdout);
 
         } else if (n == 0) {
@@ -86,6 +90,9 @@ enum connection_read_result connection_read(struct connection *con) {
             return CONNECTION_READ_CLOSE;
 
         } else {
+
+            printf("\ndrained");
+            fflush(stdout);
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return CONNECTION_READ_DRAINED;
@@ -102,6 +109,9 @@ enum connection_read_result connection_read(struct connection *con) {
 
 int connection_handle_event(int epfd, struct connection *con, uint32_t events) {
 
+    printf("\nhandling");
+    fflush(stdout);
+
     if (!con->alive) {
         return 0;
     }
@@ -111,6 +121,14 @@ int connection_handle_event(int epfd, struct connection *con, uint32_t events) {
         enum connection_read_result result = connection_read(con);
         switch (result) {
             case CONNECTION_READ_DRAINED:
+
+                printf("\ncfd drained, trying http parse response line");
+                fflush(stdout);
+
+                if (http_parse(&con->parser, &con->read_buffer) < 0) {
+                    connection_close(epfd, con);
+                    return -1;
+                }
 
                 break;
 

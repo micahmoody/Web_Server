@@ -3,6 +3,7 @@
 #define SERVER_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "event.h"
 
@@ -13,9 +14,14 @@ struct server_config {
     int backlog;
 
     const char *document_root;
-
+    
+    const char *index_page;
     const char *http_403_page;
     const char *http_404_page;
+
+    size_t max_request_size;
+    size_t max_method_size;
+    size_t max_target_size;
 
 };
 

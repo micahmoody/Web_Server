@@ -6,6 +6,7 @@
 
 #include "buffer.h"
 #include "event.h"
+#include "http-parse.h"
 
 struct connection {
 
@@ -15,6 +16,8 @@ struct connection {
 
     struct buffer read_buffer;
     struct buffer write_buffer;
+
+    struct http_parser parser;
 
     struct event ev;
 

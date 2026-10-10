@@ -11,6 +11,11 @@ struct buffer {
     size_t data_end;
 };
 
+struct buffer_range {
+    size_t start;
+    size_t len;
+};
+
 int buffer_resize(struct buffer *buf, size_t new_capacity);
 
 int buffer_init(struct buffer *buf, size_t initial_capacity);
