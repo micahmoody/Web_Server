@@ -118,16 +118,28 @@ int connection_handle_event(int epfd, struct connection *con, uint32_t events) {
 
     if (events & EPOLLIN) {
 
-        enum connection_read_result result = connection_read(con);
-        switch (result) {
+        enum connection_read_result read_result = connection_read(con);
+        enum http_parse_result parse_result;
+
+        switch (read_result) {
             case CONNECTION_READ_DRAINED:
 
                 printf("\ncfd drained, trying http parse response line");
                 fflush(stdout);
 
-                if (http_parse(&con->parser, &con->read_buffer) < 0) {
-                    connection_close(epfd, con);
-                    return -1;
+                parse_result = http_parse(&con->parser, &con->read_buffer);
+                switch (parse_result) {
+                    case HTTP_PARSE_RESULT_SUCCESS:
+                        // switch to writing here
+                        return 0;
+
+                    case HTTP_PARSE_RESULT_INCOMPLETE:
+                        //ignore and go handle other events until more data arrives
+                        return 0;
+
+                    case HTTP_PARSE_RESULT_ERR:
+                        connection_close(epfd, con);
+                        return -1;
                 }
 
                 break;

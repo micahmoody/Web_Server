@@ -140,7 +140,7 @@ enum http_parse_result http_parse(struct http_parser *parser, struct buffer *rea
 
     enum http_parse_request_line_result request_line_result;
 
-    while (1)
+    while (1) {
 
         switch (parser->state) {
             
@@ -163,6 +163,8 @@ enum http_parse_result http_parse(struct http_parser *parser, struct buffer *rea
 
                 break;
 
+        }
+
         return HTTP_PARSE_RESULT_SUCCESS;
 
     }
@@ -173,6 +175,7 @@ int http_parser_init(struct http_parser *parser) {
 
     memset(parser, 0, sizeof(*parser));
     parser->state = HTTP_PARSE_REQUEST_LINE;
+    parser->request_line_state = HTTP_PARSE_REQUEST_LINE_STATE_METHOD_START;
 
     return 0;
 
